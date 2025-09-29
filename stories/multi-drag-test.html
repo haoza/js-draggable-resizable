@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量拖拽测试</title>
+    <link rel="stylesheet" href="../src/js-draggable-resizable.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            user-select: none;
+        }
+        
+        .container {
+            position: relative;
+            width: 1000px;
+            height: 700px;
+            border: 2px solid #333;
+            background: white;
+            margin: 20px auto;
+            overflow: hidden;
+        }
+        
+        .drag-element {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: move;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .drag-element.selected {
+            border-color: #ff6b35;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+            transform: scale(1.02);
+        }
+        
+        .drag-element.dragging {
+            opacity: 0.8;
+            z-index: 1000;
+        }
+        
+        .selection-box {
+            position: absolute;
+            border: 2px dashed #007bff;
+            background: rgba(0, 123, 255, 0.1);
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn.secondary {
+            background: #6c757d;
+        }
+        
+        .btn.secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn.danger {
+            background: #dc3545;
+        }
+        
+        .btn.danger:hover {
+            background: #c82333;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px 0;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .stats {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            min-width: 200px;
+        }
+        
+        .stats h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .stats .stat-item {
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        
+        .instructions ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">批量拖拽功能测试</h1>
+    
+    <div class="instructions">
+        <h3>操作说明：</h3>
+        <ul>
+            <li><strong>单选：</strong> 点击元素选择单个元素</li>
+            <li><strong>多选：</strong> 按住Ctrl键点击选择多个元素</li>
+            <li><strong>框选：</strong> 在空白区域拖拽创建选择框</li>
+            <li><strong>批量拖拽：</strong> 拖拽任意选中的元素，所有选中元素会一起移动</li>
+            <li><strong>取消选择：</strong> 点击空白区域或按Esc键</li>
+        </ul>
+    </div>
+    
+    <div class="controls">
+        <button class="btn" onclick="createRandomElements(5)">创建5个元素</button>
+        <button class="btn" onclick="createRandomElements(10)">创建10个元素</button>
+        <button class="btn" onclick="createGridElements()">创建网格布局</button>
+        <button class="btn secondary" onclick="selectAll()">全选</button>
+        <button class="btn secondary" onclick="clearSelection()">取消选择</button>
+        <button class="btn danger" onclick="deleteSelected()">删除选中</button>
+        <button class="btn danger" onclick="clearAll()">清除所有</button>
+    </div>
+    
+    <div class="info" id="info">
+        点击按钮创建元素，然后尝试选择和拖拽
+    </div>
+    
+    <div class="stats" id="stats">
+        <h4>统计信息</h4>
+        <div class="stat-item">总元素数: <span id="totalCount">0</span></div>
+        <div class="stat-item">选中元素: <span id="selectedCount">0</span></div>
+        <div class="stat-item">拖拽模式: <span id="dragMode">无</span></div>
+    </div>
+    
+    <div class="container" id="container">
+        <!-- 拖拽元素将在这里创建 -->
+    </div>
+    
+    <script src="../src/js-draggable-resizable.js"></script>
+    <script>
+        class MultiDragManager {
+            constructor(container) {
+                this.container = container;
+                this.elements = new Map(); // elementId -> { element, instance, data }
+                this.selectedElements = new Set();
+                this.isDragging = false;
+                this.isSelecting = false;
+                this.selectionBox = null;
+                this.dragOffset = new Map(); // 记录每个元素相对于主元素的偏移
+                this.lastElementId = 0;
+                
+                this.bindEvents();
+                this.updateStats();
+            }
+            
+            bindEvents() {
+                // 容器事件
+                this.container.addEventListener('mousedown', this.handleContainerMouseDown.bind(this));
+                this.container.addEventListener('mousemove', this.handleContainerMouseMove.bind(this));
+                this.container.addEventListener('mouseup', this.handleContainerMouseUp.bind(this));
+                
+                // 全局事件
+                document.addEventListener('keydown', this.handleKeyDown.bind(this));
+                document.addEventListener('mousemove', this.handleGlobalMouseMove.bind(this));
+                document.addEventListener('mouseup', this.handleGlobalMouseUp.bind(this));
+            }
+            
+            createElement(x, y, width = 100, height = 80, text = null) {
+                const elementId = ++this.lastElementId;
+                const element = document.createElement('div');
+                element.className = 'drag-element';
+                element.textContent = text || `元素 ${elementId}`;
+                element.dataset.elementId = elementId;
+                
+                this.container.appendChild(element);
+                
+                // 创建 DraggableResizable 实例
+                const instance = new DraggableResizable(element, {
+                    x: x,
+                    y: y,
+                    w: width,
+                    h: height,
+                    active: false,
+                    parent: true,
+                    resizable: false, // 禁用调整大小，只允许拖拽
+                    onDragStart: (e) => this.handleDragStart(elementId, e),
+                    onDrag: (x, y) => this.handleDrag(elementId, x, y),
+                    onDragStop: (x, y) => this.handleDragStop(elementId, x, y)
+                });
+                
+                // 添加点击事件处理
+                element.addEventListener('mousedown', (e) => this.handleElementMouseDown(elementId, e));
+                element.addEventListener('click', (e) => this.handleElementClick(elementId, e));
+                
+                this.elements.set(elementId, {
+                    element,
+                    instance,
+                    data: { x, y, width, height }
+                });
+                
+                this.updateStats();
+                return elementId;
+            }
+            
+            handleElementMouseDown(elementId, e) {
+                e.stopPropagation();
+                
+                if (!e.ctrlKey && !this.selectedElements.has(elementId)) {
+                    this.clearSelection();
+                    this.selectElement(elementId);
+                }
+            }
+            
+            handleElementClick(elementId, e) {
+                e.stopPropagation();
+                
+                if (e.ctrlKey) {
+                    // Ctrl+点击：切换选择状态
+                    if (this.selectedElements.has(elementId)) {
+                        this.unselectElement(elementId);
+                    } else {
+                        this.selectElement(elementId);
+                    }
+                } else if (!this.selectedElements.has(elementId)) {
+                    // 普通点击：选择单个元素
+                    this.clearSelection();
+                    this.selectElement(elementId);
+                }
+            }
+            
+            handleDragStart(elementId, e) {
+                if (!this.selectedElements.has(elementId)) {
+                    this.clearSelection();
+                    this.selectElement(elementId);
+                }
+                
+                this.isDragging = true;
+                this.calculateDragOffsets(elementId);
+                
+                // 添加拖拽样式
+                this.selectedElements.forEach(id => {
+                    const { element } = this.elements.get(id);
+                    element.classList.add('dragging');
+                });
+                
+                document.getElementById('dragMode').textContent = `拖拽 ${this.selectedElements.size} 个元素`;
+                return true;
+            }
+            
+            handleDrag(primaryElementId, x, y) {
+                if (!this.isDragging) return;
+                
+                // 移动所有选中的元素
+                this.selectedElements.forEach(elementId => {
+                    if (elementId === primaryElementId) {
+                        // 主元素直接设置位置
+                        const elementData = this.elements.get(elementId);
+                        elementData.data.x = x;
+                        elementData.data.y = y;
+                    } else {
+                        // 其他元素根据偏移量计算位置
+                        const offset = this.dragOffset.get(elementId);
+                        if (offset) {
+                            const newX = x + offset.x;
+                            const newY = y + offset.y;
+                            const { instance, data } = this.elements.get(elementId);
+                            
+                            // 确保不超出容器边界
+                            const containerRect = this.container.getBoundingClientRect();
+                            const maxX = containerRect.width - data.width;
+                            const maxY = containerRect.height - data.height;
+                            
+                            const clampedX = Math.max(0, Math.min(maxX, newX));
+                            const clampedY = Math.max(0, Math.min(maxY, newY));
+                            
+                            instance.setPosition(clampedX, clampedY);
+                            data.x = clampedX;
+                            data.y = clampedY;
+                        }
+                    }
+                });
+                
+                return true;
+            }
+            
+            handleDragStop(elementId, x, y) {
+                this.isDragging = false;
+                
+                // 移除拖拽样式
+                this.selectedElements.forEach(id => {
+                    const { element } = this.elements.get(id);
+                    element.classList.remove('dragging');
+                });
+                
+                document.getElementById('dragMode').textContent = '无';
+                this.log(`批量拖拽完成，移动了 ${this.selectedElements.size} 个元素`);
+            }
+            
+            calculateDragOffsets(primaryElementId) {
+                this.dragOffset.clear();
+                const primaryData = this.elements.get(primaryElementId).data;
+                
+                this.selectedElements.forEach(elementId => {
+                    if (elementId !== primaryElementId) {
+                        const elementData = this.elements.get(elementId).data;
+                        this.dragOffset.set(elementId, {
+                            x: elementData.x - primaryData.x,
+                            y: elementData.y - primaryData.y
+                        });
+                    }
+                });
+            }
+            
+            handleContainerMouseDown(e) {
+                if (e.target === this.container) {
+                    this.startSelection(e);
+                }
+            }
+            
+            handleContainerMouseMove(e) {
+                if (this.isSelecting) {
+                    this.updateSelection(e);
+                }
+            }
+            
+            handleContainerMouseUp(e) {
+                if (this.isSelecting) {
+                    this.endSelection();
+                }
+            }
+            
+            handleGlobalMouseMove(e) {
+                if (this.isSelecting) {
+                    this.updateSelection(e);
+                }
+            }
+            
+            handleGlobalMouseUp(e) {
+                if (this.isSelecting) {
+                    this.endSelection();
+                }
+            }
+            
+            startSelection(e) {
+                if (!e.ctrlKey) {
+                    this.clearSelection();
+                }
+                
+                this.isSelecting = true;
+                const rect = this.container.getBoundingClientRect();
+                this.selectionStart = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                
+                this.createSelectionBox();
+            }
+            
+            updateSelection(e) {
+                if (!this.isSelecting || !this.selectionBox) return;
+                
+                const rect = this.container.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                const left = Math.min(this.selectionStart.x, currentX);
+                const top = Math.min(this.selectionStart.y, currentY);
+                const width = Math.abs(currentX - this.selectionStart.x);
+                const height = Math.abs(currentY - this.selectionStart.y);
+                
+                this.selectionBox.style.left = left + 'px';
+                this.selectionBox.style.top = top + 'px';
+                this.selectionBox.style.width = width + 'px';
+                this.selectionBox.style.height = height + 'px';
+                
+                // 检查哪些元素在选择框内
+                this.checkElementsInSelection(left, top, width, height);
+            }
+            
+            endSelection() {
+                this.isSelecting = false;
+                if (this.selectionBox) {
+                    this.selectionBox.remove();
+                    this.selectionBox = null;
+                }
+            }
+            
+            createSelectionBox() {
+                this.selectionBox = document.createElement('div');
+                this.selectionBox.className = 'selection-box';
+                this.selectionBox.style.left = this.selectionStart.x + 'px';
+                this.selectionBox.style.top = this.selectionStart.y + 'px';
+                this.selectionBox.style.width = '0px';
+                this.selectionBox.style.height = '0px';
+                this.container.appendChild(this.selectionBox);
+            }
+            
+            checkElementsInSelection(selectionLeft, selectionTop, selectionWidth, selectionHeight) {
+                const selectionRight = selectionLeft + selectionWidth;
+                const selectionBottom = selectionTop + selectionHeight;
+                
+                this.elements.forEach((elementData, elementId) => {
+                    const { data } = elementData;
+                    const elementRight = data.x + data.width;
+                    const elementBottom = data.y + data.height;
+                    
+                    // 检查是否有重叠
+                    const isOverlapping = !(
+                        data.x > selectionRight ||
+                        elementRight < selectionLeft ||
+                        data.y > selectionBottom ||
+                        elementBottom < selectionTop
+                    );
+                    
+                    if (isOverlapping) {
+                        this.selectElement(elementId);
+                    }
+                });
+            }
+            
+            selectElement(elementId) {
+                if (!this.elements.has(elementId)) return;
+                
+                this.selectedElements.add(elementId);
+                const { element } = this.elements.get(elementId);
+                element.classList.add('selected');
+                this.updateStats();
+            }
+            
+            unselectElement(elementId) {
+                this.selectedElements.delete(elementId);
+                if (this.elements.has(elementId)) {
+                    const { element } = this.elements.get(elementId);
+                    element.classList.remove('selected');
+                }
+                this.updateStats();
+            }
+            
+            clearSelection() {
+                this.selectedElements.forEach(elementId => {
+                    if (this.elements.has(elementId)) {
+                        const { element } = this.elements.get(elementId);
+                        element.classList.remove('selected');
+                    }
+                });
+                this.selectedElements.clear();
+                this.updateStats();
+            }
+            
+            selectAll() {
+                this.elements.forEach((_, elementId) => {
+                    this.selectElement(elementId);
+                });
+                this.log(`已选择所有 ${this.elements.size} 个元素`);
+            }
+            
+            deleteSelected() {
+                if (this.selectedElements.size === 0) {
+                    this.log('没有选中的元素');
+                    return;
+                }
+                
+                const count = this.selectedElements.size;
+                this.selectedElements.forEach(elementId => {
+                    this.deleteElement(elementId);
+                });
+                
+                this.selectedElements.clear();
+                this.log(`已删除 ${count} 个元素`);
+            }
+            
+            deleteElement(elementId) {
+                if (!this.elements.has(elementId)) return;
+                
+                const { element, instance } = this.elements.get(elementId);
+                instance.destroy();
+                element.remove();
+                this.elements.delete(elementId);
+                this.selectedElements.delete(elementId);
+                this.updateStats();
+            }
+            
+            clearAll() {
+                this.elements.forEach((elementData, elementId) => {
+                    const { element, instance } = elementData;
+                    instance.destroy();
+                    element.remove();
+                });
+                
+                this.elements.clear();
+                this.selectedElements.clear();
+                this.updateStats();
+                this.log('已清除所有元素');
+            }
+            
+            handleKeyDown(e) {
+                if (e.key === 'Escape') {
+                    this.clearSelection();
+                    this.log('已取消选择');
+                } else if (e.key === 'Delete' && this.selectedElements.size > 0) {
+                    this.deleteSelected();
+                } else if (e.ctrlKey && e.key === 'a') {
+                    e.preventDefault();
+                    this.selectAll();
+                }
+            }
+            
+            updateStats() {
+                document.getElementById('totalCount').textContent = this.elements.size;
+                document.getElementById('selectedCount').textContent = this.selectedElements.size;
+            }
+            
+            log(message) {
+                document.getElementById('info').textContent = message;
+                console.log(message);
+            }
+        }
+        
+        // 全局变量
+        let multiDragManager;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('container');
+            multiDragManager = new MultiDragManager(container);
+            multiDragManager.log('批量拖拽系统已初始化');
+        });
+        
+        // 公共函数
+        function createRandomElements(count) {
+            const containerRect = multiDragManager.container.getBoundingClientRect();
+            const maxX = containerRect.width - 120;
+            const maxY = containerRect.height - 100;
+            
+            for (let i = 0; i < count; i++) {
+                const x = Math.random() * maxX;
+                const y = Math.random() * maxY;
+                const width = 80 + Math.random() * 40; // 80-120
+                const height = 60 + Math.random() * 40; // 60-100
+                
+                multiDragManager.createElement(x, y, width, height);
+            }
+            
+            multiDragManager.log(`已创建 ${count} 个随机位置的元素`);
+        }
+        
+        function createGridElements() {
+            multiDragManager.clearAll();
+            
+            const rows = 3;
+            const cols = 4;
+            const spacing = 20;
+            const elementWidth = 100;
+            const elementHeight = 80;
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = 50 + col * (elementWidth + spacing);
+                    const y = 50 + row * (elementHeight + spacing);
+                    
+                    multiDragManager.createElement(x, y, elementWidth, elementHeight, `R${row+1}C${col+1}`);
+                }
+            }
+            
+            multiDragManager.log(`已创建 ${rows}×${cols} 网格布局`);
+        }
+        
+        function selectAll() {
+            multiDragManager.selectAll();
+        }
+        
+        function clearSelection() {
+            multiDragManager.clearSelection();
+        }
+        
+        function deleteSelected() {
+            multiDragManager.deleteSelected();
+        }
+        
+        function clearAll() {
+            multiDragManager.clearAll();
+        }
+    </script>
+</body>
+</html>

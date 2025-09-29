@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缩放功能测试</title>
+    <link rel="stylesheet" href="../src/js-draggable-resizable.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 2px solid #333;
+            background: white;
+            margin: 20px auto;
+        }
+        
+        .test-element {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            margin: 5px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px 0;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .debug {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">缩放功能专项测试</h1>
+    
+    <div class="controls">
+        <button class="btn" onclick="createResizeTest()">创建可缩放元素</button>
+        <button class="btn" onclick="createConstrainedTest()">约束缩放测试</button>
+        <button class="btn" onclick="createAspectRatioTest()">宽高比锁定测试</button>
+        <button class="btn" onclick="clearAll()">清除所有</button>
+    </div>
+    
+    <div class="info" id="info">
+        点击按钮创建测试元素，然后拖拽蓝色句柄调整大小
+    </div>
+    
+    <div class="debug" id="debug">
+        调试信息将显示在这里
+    </div>
+    
+    <div class="container" id="container">
+        <!-- 测试元素将在这里创建 -->
+    </div>
+    
+    <script src="../src/js-draggable-resizable.js"></script>
+    <script>
+        let instances = [];
+        let debugInfo = [];
+        
+        function updateDebug() {
+            const debugEl = document.getElementById('debug');
+            debugEl.innerHTML = debugInfo.slice(-10).join('<br>');
+        }
+        
+        function addDebug(message) {
+            debugInfo.push(new Date().toLocaleTimeString() + ': ' + message);
+            updateDebug();
+            console.log(message);
+        }
+        
+        function log(message) {
+            document.getElementById('info').textContent = message;
+            addDebug(message);
+        }
+        
+        function clearAll() {
+            instances.forEach(instance => {
+                if (instance && typeof instance.destroy === 'function') {
+                    instance.destroy();
+                }
+            });
+            instances = [];
+            document.getElementById('container').innerHTML = '';
+            debugInfo = [];
+            updateDebug();
+            log('所有测试元素已清除');
+        }
+        
+        function createResizeTest() {
+            clearAll();
+            
+            try {
+                const element = document.createElement('div');
+                element.className = 'test-element';
+                element.textContent = '拖拽蓝色句柄调整大小';
+                document.getElementById('container').appendChild(element);
+                
+                addDebug('创建基础缩放测试元素');
+                
+                const instance = new DraggableResizable(element, {
+                    x: 150,
+                    y: 150,
+                    w: 200,
+                    h: 150,
+                    active: true,
+                    draggable: false, // 禁用拖拽，只允许缩放
+                    onResizeStart: (handle, e) => {
+                        addDebug(`开始缩放 - 句柄: ${handle}`);
+                        return true;
+                    },
+                    onResize: (handle, x, y, w, h) => {
+                        addDebug(`缩放中 - ${handle}: ${w}×${h} @ (${x},${y})`);
+                        return true;
+                    },
+                    onResizeStop: (x, y, w, h) => {
+                        addDebug(`缩放结束 - 最终: ${w}×${h} @ (${x},${y})`);
+                        log(`缩放完成: ${w}×${h}`);
+                    },
+                    onActivated: () => {
+                        addDebug('元素已激活');
+                        log('基础缩放测试已创建 - 拖拽蓝色句柄调整大小');
+                    }
+                });
+                
+                instances.push(instance);
+                
+            } catch (error) {
+                addDebug('创建失败: ' + error.message);
+                log('创建失败: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function createConstrainedTest() {
+            clearAll();
+            
+            try {
+                const element = document.createElement('div');
+                element.className = 'test-element';
+                element.textContent = '约束缩放 (100-400x80-300)';
+                document.getElementById('container').appendChild(element);
+                
+                addDebug('创建约束缩放测试元素');
+                
+                const instance = new DraggableResizable(element, {
+                    x: 100,
+                    y: 100,
+                    w: 150,
+                    h: 120,
+                    active: true,
+                    draggable: false,
+                    minWidth: 100,
+                    minHeight: 80,
+                    maxWidth: 400,
+                    maxHeight: 300,
+                    parent: true, // 限制在父容器内
+                    onResizeStart: (handle, e) => {
+                        addDebug(`约束缩放开始 - 句柄: ${handle}`);
+                        return true;
+                    },
+                    onResize: (handle, x, y, w, h) => {
+                        addDebug(`约束缩放 - ${handle}: ${w}×${h}`);
+                        return true;
+                    },
+                    onResizeStop: (x, y, w, h) => {
+                        addDebug(`约束缩放结束 - ${w}×${h}`);
+                        log(`约束缩放完成: ${w}×${h} (限制: 100-400 × 80-300)`);
+                    },
+                    onActivated: () => {
+                        addDebug('约束元素已激活');
+                        log('约束缩放测试 - 最小100×80，最大400×300，限制在容器内');
+                    }
+                });
+                
+                instances.push(instance);
+                
+            } catch (error) {
+                addDebug('约束测试创建失败: ' + error.message);
+                log('约束测试创建失败: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function createAspectRatioTest() {
+            clearAll();
+            
+            try {
+                const element = document.createElement('div');
+                element.className = 'test-element';
+                element.textContent = '宽高比锁定 (4:3)';
+                document.getElementById('container').appendChild(element);
+                
+                addDebug('创建宽高比锁定测试元素');
+                
+                const instance = new DraggableResizable(element, {
+                    x: 200,
+                    y: 200,
+                    w: 160,
+                    h: 120, // 4:3 比例
+                    active: true,
+                    draggable: false,
+                    lockAspectRatio: true, // 锁定宽高比
+                    minWidth: 80,
+                    minHeight: 60,
+                    onResizeStart: (handle, e) => {
+                        addDebug(`宽高比缩放开始 - 句柄: ${handle}`);
+                        return true;
+                    },
+                    onResize: (handle, x, y, w, h) => {
+                        const ratio = (w / h).toFixed(2);
+                        addDebug(`宽高比缩放 - ${w}×${h} 比例:${ratio}`);
+                        return true;
+                    },
+                    onResizeStop: (x, y, w, h) => {
+                        const ratio = (w / h).toFixed(2);
+                        addDebug(`宽高比缩放结束 - ${w}×${h} 比例:${ratio}`);
+                        log(`宽高比锁定完成: ${w}×${h} 比例: ${ratio}`);
+                    },
+                    onActivated: () => {
+                        addDebug('宽高比元素已激活');
+                        log('宽高比锁定测试 - 缩放时保持4:3比例');
+                    }
+                });
+                
+                instances.push(instance);
+                
+            } catch (error) {
+                addDebug('宽高比测试创建失败: ' + error.message);
+                log('宽高比测试创建失败: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            addDebug('页面加载完成');
+            log('页面准备就绪 - 点击按钮开始测试缩放功能');
+        });
+    </script>
+</body>
+</html>

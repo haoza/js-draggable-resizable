@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DraggableResizable - 纯JavaScript拖拽调整大小库</title>
+    <link rel="stylesheet" href="../src/js-draggable-resizable.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: #fff;
+            padding: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .main {
+            padding: 40px 0;
+        }
+
+        .demo-section {
+            background: #fff;
+            margin-bottom: 40px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .demo-header {
+            background: #3b82f6;
+            color: #fff;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .demo-content {
+            padding: 30px;
+        }
+
+        .demo-area {
+            position: relative;
+            height: 400px;
+            border: 2px dashed #e5e7eb;
+            background: #f9fafb;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .demo-area::before {
+            content: "拖拽区域";
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #9ca3af;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .demo-element {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border-radius: 4px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn.secondary {
+            background: #6b7280;
+        }
+
+        .btn.secondary:hover {
+            background: #4b5563;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-group label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .input-group input[type="number"] {
+            width: 80px;
+            padding: 4px 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .info-panel {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .footer {
+            background: #fff;
+            padding: 40px 0;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 40px;
+        }
+
+        .footer-content {
+            text-align: center;
+            color: #666;
+        }
+
+        .api-docs {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .api-docs h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3b82f6;
+        }
+
+        .api-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .api-table th,
+        .api-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .api-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .api-table code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        /* 批量拖拽样式 */
+        .multi-element {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: move;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .multi-element.selected {
+            border-color: #ff6b35;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+            transform: scale(1.02);
+        }
+
+        .multi-element.dragging {
+            opacity: 0.8;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .input-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .demo-area {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>DraggableResizable</h1>
+            <p>纯JavaScript实现的拖拽和调整大小库，不依赖任何第三方框架</p>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- 基础演示 -->
+            <section class="demo-section">
+                <div class="demo-header">基础功能演示</div>
+                <div class="demo-content">
+                    <div class="demo-area" id="demo1">
+                        <div class="demo-element" id="element1">拖拽我</div>
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="activateElement1()">激活</button>
+                        <button class="btn secondary" onclick="deactivateElement1()">取消激活</button>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="draggable1" checked onchange="toggleDraggable1()">
+                            <label for="draggable1">可拖拽</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="resizable1" checked onchange="toggleResizable1()">
+                            <label for="resizable1">可调整大小</label>
+                        </div>
+                    </div>
+                    <div class="info-panel" id="info1">
+                        位置: (50, 50) | 尺寸: 150×100
+                    </div>
+                </div>
+            </section>
+
+            <!-- 约束演示 -->
+            <section class="demo-section">
+                <div class="demo-header">约束功能演示</div>
+                <div class="demo-content">
+                    <div class="demo-area" id="demo2">
+                        <div class="demo-element" id="element2">约束拖拽</div>
+                    </div>
+                    <div class="controls">
+                        <div class="input-group">
+                            <label>最小宽度:</label>
+                            <input type="number" id="minWidth" value="100" onchange="updateConstraints()">
+                        </div>
+                        <div class="input-group">
+                            <label>最小高度:</label>
+                            <input type="number" id="minHeight" value="80" onchange="updateConstraints()">
+                        </div>
+                        <div class="input-group">
+                            <label>最大宽度:</label>
+                            <input type="number" id="maxWidth" value="300" onchange="updateConstraints()">
+                        </div>
+                        <div class="input-group">
+                            <label>最大高度:</label>
+                            <input type="number" id="maxHeight" value="200" onchange="updateConstraints()">
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="lockAspect" onchange="toggleLockAspect()">
+                            <label for="lockAspect">锁定宽高比</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="parent" checked onchange="toggleParent()">
+                            <label for="parent">限制在父容器内</label>
+                        </div>
+                    </div>
+                    <div class="info-panel" id="info2">
+                        位置: (100, 100) | 尺寸: 150×120
+                    </div>
+                </div>
+            </section>
+
+            <!-- 网格对齐演示 -->
+            <section class="demo-section">
+                <div class="demo-header">网格对齐演示</div>
+                <div class="demo-content">
+                    <div class="demo-area" id="demo3" style="background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 20px), repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 20px); background-size: 20px 20px;">
+                        <div class="demo-element" id="element3">网格对齐</div>
+                    </div>
+                    <div class="controls">
+                        <div class="input-group">
+                            <label>网格X:</label>
+                            <input type="number" id="gridX" value="20" onchange="updateGrid()">
+                        </div>
+                        <div class="input-group">
+                            <label>网格Y:</label>
+                            <input type="number" id="gridY" value="20" onchange="updateGrid()">
+                        </div>
+                        <button class="btn" onclick="resetPosition3()">重置位置</button>
+                    </div>
+                    <div class="info-panel" id="info3">
+                        位置: (60, 60) | 尺寸: 140×100 | 网格: [20, 20]
+                    </div>
+                </div>
+            </section>
+
+            <!-- 批量拖拽演示 -->
+            <section class="demo-section">
+                <div class="demo-header">批量拖拽演示</div>
+                <div class="demo-content">
+                    <div class="demo-area" id="demo4" style="height: 500px;">
+                        <!-- 批量拖拽元素将在这里创建 -->
+                    </div>
+                    <div class="controls">
+                        <button class="btn" onclick="createMultiElements()">创建多个元素</button>
+                        <button class="btn" onclick="selectAllElements()">全选</button>
+                        <button class="btn secondary" onclick="clearMultiSelection()">取消选择</button>
+                        <button class="btn secondary" onclick="clearMultiDemo()">清除所有</button>
+                    </div>
+                    <div class="info-panel" id="info4">
+                        点击创建元素，然后按住Ctrl键选择多个元素，拖拽实现批量移动
+                    </div>
+                    <div style="background: #e7f3ff; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 14px;">
+                        <strong>操作说明：</strong><br>
+                        • 单击选择单个元素<br>
+                        • Ctrl+单击选择多个元素<br>
+                        • 拖拽任意选中元素，所有选中元素会一起移动<br>
+                        • 点击空白区域取消选择
+                    </div>
+                </div>
+            </section>
+
+            <!-- API文档 -->
+            <section class="api-docs">
+                <h3>API 文档</h3>
+                
+                <h4>构造函数</h4>
+                <div class="code-block">
+const draggable = new DraggableResizable(element, options);
+                </div>
+
+                <h4>配置选项</h4>
+                <table class="api-table">
+                    <thead>
+                        <tr>
+                            <th>选项</th>
+                            <th>类型</th>
+                            <th>默认值</th>
+                            <th>描述</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>draggable</code></td>
+                            <td>Boolean</td>
+                            <td>true</td>
+                            <td>是否可拖拽</td>
+                        </tr>
+                        <tr>
+                            <td><code>resizable</code></td>
+                            <td>Boolean</td>
+                            <td>true</td>
+                            <td>是否可调整大小</td>
+                        </tr>
+                        <tr>
+                            <td><code>x</code></td>
+                            <td>Number</td>
+                            <td>0</td>
+                            <td>初始X坐标</td>
+                        </tr>
+                        <tr>
+                            <td><code>y</code></td>
+                            <td>Number</td>
+                            <td>0</td>
+                            <td>初始Y坐标</td>
+                        </tr>
+                        <tr>
+                            <td><code>w</code></td>
+                            <td>Number</td>
+                            <td>200</td>
+                            <td>初始宽度</td>
+                        </tr>
+                        <tr>
+                            <td><code>h</code></td>
+                            <td>Number</td>
+                            <td>200</td>
+                            <td>初始高度</td>
+                        </tr>
+                        <tr>
+                            <td><code>minWidth</code></td>
+                            <td>Number</td>
+                            <td>0</td>
+                            <td>最小宽度</td>
+                        </tr>
+                        <tr>
+                            <td><code>minHeight</code></td>
+                            <td>Number</td>
+                            <td>0</td>
+                            <td>最小高度</td>
+                        </tr>
+                        <tr>
+                            <td><code>maxWidth</code></td>
+                            <td>Number</td>
+                            <td>null</td>
+                            <td>最大宽度</td>
+                        </tr>
+                        <tr>
+                            <td><code>maxHeight</code></td>
+                            <td>Number</td>
+                            <td>null</td>
+                            <td>最大高度</td>
+                        </tr>
+                        <tr>
+                            <td><code>lockAspectRatio</code></td>
+                            <td>Boolean</td>
+                            <td>false</td>
+                            <td>锁定宽高比</td>
+                        </tr>
+                        <tr>
+                            <td><code>parent</code></td>
+                            <td>Boolean</td>
+                            <td>false</td>
+                            <td>限制在父容器内</td>
+                        </tr>
+                        <tr>
+                            <td><code>grid</code></td>
+                            <td>Array</td>
+                            <td>[1, 1]</td>
+                            <td>网格对齐 [x, y]</td>
+                        </tr>
+                        <tr>
+                            <td><code>axis</code></td>
+                            <td>String</td>
+                            <td>'both'</td>
+                            <td>拖拽轴向: 'x', 'y', 'both'</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>公共方法</h4>
+                <table class="api-table">
+                    <thead>
+                        <tr>
+                            <th>方法</th>
+                            <th>参数</th>
+                            <th>返回值</th>
+                            <th>描述</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>activate()</code></td>
+                            <td>无</td>
+                            <td>void</td>
+                            <td>激活元素</td>
+                        </tr>
+                        <tr>
+                            <td><code>deactivate()</code></td>
+                            <td>无</td>
+                            <td>void</td>
+                            <td>取消激活元素</td>
+                        </tr>
+                        <tr>
+                            <td><code>setPosition(x, y)</code></td>
+                            <td>Number, Number</td>
+                            <td>void</td>
+                            <td>设置位置</td>
+                        </tr>
+                        <tr>
+                            <td><code>setSize(width, height)</code></td>
+                            <td>Number, Number</td>
+                            <td>void</td>
+                            <td>设置尺寸</td>
+                        </tr>
+                        <tr>
+                            <td><code>getPosition()</code></td>
+                            <td>无</td>
+                            <td>Object</td>
+                            <td>获取位置 {x, y}</td>
+                        </tr>
+                        <tr>
+                            <td><code>getSize()</code></td>
+                            <td>无</td>
+                            <td>Object</td>
+                            <td>获取尺寸 {width, height}</td>
+                        </tr>
+                        <tr>
+                            <td><code>destroy()</code></td>
+                            <td>无</td>
+                            <td>void</td>
+                            <td>销毁实例</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>事件回调</h4>
+                <table class="api-table">
+                    <thead>
+                        <tr>
+                            <th>事件</th>
+                            <th>参数</th>
+                            <th>描述</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>onDragStart</code></td>
+                            <td>event</td>
+                            <td>开始拖拽时触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onDrag</code></td>
+                            <td>x, y</td>
+                            <td>拖拽过程中触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onDragStop</code></td>
+                            <td>x, y</td>
+                            <td>拖拽结束时触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onResizeStart</code></td>
+                            <td>handle, event</td>
+                            <td>开始调整大小时触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onResize</code></td>
+                            <td>handle, x, y, width, height</td>
+                            <td>调整大小过程中触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onResizeStop</code></td>
+                            <td>x, y, width, height</td>
+                            <td>调整大小结束时触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onActivated</code></td>
+                            <td>无</td>
+                            <td>元素激活时触发</td>
+                        </tr>
+                        <tr>
+                            <td><code>onDeactivated</code></td>
+                            <td>无</td>
+                            <td>元素取消激活时触发</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>使用示例</h4>
+                <div class="code-block">
+// 基础使用
+const element = document.getElementById('myElement');
+const draggable = new DraggableResizable(element, {
+    x: 100,
+    y: 100,
+    w: 200,
+    h: 150,
+    minWidth: 50,
+    minHeight: 50,
+    lockAspectRatio: false,
+    parent: true,
+    grid: [10, 10],
+    onDrag: (x, y) => {
+        console.log('Dragging to:', x, y);
+    },
+    onResize: (handle, x, y, width, height) => {
+        console.log('Resizing:', width, height);
+    }
+});
+
+// 激活元素
+draggable.activate();
+
+// 设置位置和尺寸
+draggable.setPosition(150, 200);
+draggable.setSize(300, 250);
+
+// 获取当前状态
+const position = draggable.getPosition();
+const size = draggable.getSize();
+
+// 销毁实例
+draggable.destroy();
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p>DraggableResizable - 纯JavaScript拖拽调整大小库</p>
+                <p>不依赖任何第三方框架，轻量级、高性能、易于使用</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../src/js-draggable-resizable.js"></script>
+    <script>
+        // 全局变量存储实例
+        let draggable1, draggable2, draggable3;
+
+        // 初始化演示
+        document.addEventListener('DOMContentLoaded', function() {
+            initDemo1();
+            initDemo2();
+            initDemo3();
+        });
+
+        // 演示1：基础功能
+        function initDemo1() {
+            const element = document.getElementById('element1');
+            draggable1 = new DraggableResizable(element, {
+                x: 50,
+                y: 50,
+                w: 150,
+                h: 100,
+                active: true,
+                onDrag: (x, y) => {
+                    updateInfo1();
+                },
+                onResize: (handle, x, y, width, height) => {
+                    updateInfo1();
+                },
+                onActivated: () => {
+                    console.log('Element 1 activated');
+                },
+                onDeactivated: () => {
+                    console.log('Element 1 deactivated');
+                }
+            });
+            updateInfo1();
+        }
+
+        function updateInfo1() {
+            const pos = draggable1.getPosition();
+            const size = draggable1.getSize();
+            document.getElementById('info1').textContent = 
+                `位置: (${pos.x}, ${pos.y}) | 尺寸: ${size.width}×${size.height}`;
+        }
+
+        function activateElement1() {
+            draggable1.activate();
+        }
+
+        function deactivateElement1() {
+            draggable1.deactivate();
+        }
+
+        function toggleDraggable1() {
+            const checked = document.getElementById('draggable1').checked;
+            draggable1.options.draggable = checked;
+            if (checked) {
+                draggable1.addClass(draggable1.element, draggable1.options.classNameDraggable);
+            } else {
+                draggable1.removeClass(draggable1.element, draggable1.options.classNameDraggable);
+            }
+        }
+
+        function toggleResizable1() {
+            const checked = document.getElementById('resizable1').checked;
+            draggable1.options.resizable = checked;
+            if (checked) {
+                draggable1.addClass(draggable1.element, draggable1.options.classNameResizable);
+                Object.values(draggable1.handles || {}).forEach(handle => {
+                    handle.style.display = draggable1.state.enabled ? 'block' : 'none';
+                });
+            } else {
+                draggable1.removeClass(draggable1.element, draggable1.options.classNameResizable);
+                Object.values(draggable1.handles || {}).forEach(handle => {
+                    handle.style.display = 'none';
+                });
+            }
+        }
+
+        // 演示2：约束功能
+        function initDemo2() {
+            const element = document.getElementById('element2');
+            draggable2 = new DraggableResizable(element, {
+                x: 100,
+                y: 100,
+                w: 150,
+                h: 120,
+                minWidth: 100,
+                minHeight: 80,
+                maxWidth: 300,
+                maxHeight: 200,
+                parent: true,
+                active: true,
+                onDrag: (x, y) => {
+                    updateInfo2();
+                },
+                onResize: (handle, x, y, width, height) => {
+                    updateInfo2();
+                }
+            });
+            updateInfo2();
+        }
+
+        function updateInfo2() {
+            const pos = draggable2.getPosition();
+            const size = draggable2.getSize();
+            document.getElementById('info2').textContent = 
+                `位置: (${pos.x}, ${pos.y}) | 尺寸: ${size.width}×${size.height}`;
+        }
+
+        function updateConstraints() {
+            const minWidth = parseInt(document.getElementById('minWidth').value);
+            const minHeight = parseInt(document.getElementById('minHeight').value);
+            const maxWidth = parseInt(document.getElementById('maxWidth').value);
+            const maxHeight = parseInt(document.getElementById('maxHeight').value);
+            
+            draggable2.options.minWidth = minWidth;
+            draggable2.options.minHeight = minHeight;
+            draggable2.options.maxWidth = maxWidth;
+            draggable2.options.maxHeight = maxHeight;
+        }
+
+        function toggleLockAspect() {
+            const checked = document.getElementById('lockAspect').checked;
+            draggable2.options.lockAspectRatio = checked;
+            if (checked) {
+                draggable2.state.aspectFactor = draggable2.state.width / draggable2.state.height;
+            }
+        }
+
+        function toggleParent() {
+            const checked = document.getElementById('parent').checked;
+            draggable2.options.parent = checked;
+            if (checked) {
+                draggable2.calculateInitialState();
+            }
+        }
+
+        // 演示3：网格对齐
+        function initDemo3() {
+            const element = document.getElementById('element3');
+            draggable3 = new DraggableResizable(element, {
+                x: 60,
+                y: 60,
+                w: 140,
+                h: 100,
+                grid: [20, 20],
+                parent: true,
+                active: true,
+                onDrag: (x, y) => {
+                    updateInfo3();
+                },
+                onResize: (handle, x, y, width, height) => {
+                    updateInfo3();
+                }
+            });
+            updateInfo3();
+        }
+
+        function updateInfo3() {
+            const pos = draggable3.getPosition();
+            const size = draggable3.getSize();
+            document.getElementById('info3').textContent = 
+                `位置: (${pos.x}, ${pos.y}) | 尺寸: ${size.width}×${size.height} | 网格: [${draggable3.options.grid[0]}, ${draggable3.options.grid[1]}]`;
+        }
+
+        function updateGrid() {
+            const gridX = parseInt(document.getElementById('gridX').value);
+            const gridY = parseInt(document.getElementById('gridY').value);
+            draggable3.options.grid = [gridX, gridY];
+            updateInfo3();
+        }
+
+        function resetPosition3() {
+            draggable3.setPosition(60, 60);
+            draggable3.setSize(140, 100);
+            updateInfo3();
+        }
+
+        // 批量拖拽功能
+        let multiElements = [];
+        let selectedElements = new Set();
+        let isDraggingMultiple = false;
+        let dragOffsets = new Map();
+
+        function createMultiElements() {
+            clearMultiDemo();
+            
+            const container = document.getElementById('demo4');
+            const colors = [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+            ];
+            
+            for (let i = 0; i < 5; i++) {
+                const element = document.createElement('div');
+                element.className = 'multi-element';
+                element.textContent = `元素 ${i + 1}`;
+                element.style.background = colors[i];
+                element.dataset.elementId = i + 1;
+                container.appendChild(element);
+                
+                const x = 50 + (i % 3) * 150;
+                const y = 50 + Math.floor(i / 3) * 120;
+                
+                const instance = new DraggableResizable(element, {
+                    x: x,
+                    y: y,
+                    w: 120,
+                    h: 80,
+                    active: false,
+                    parent: true,
+                    resizable: false,
+                    onDragStart: (e) => handleMultiDragStart(i + 1, e),
+                    onDrag: (x, y) => handleMultiDrag(i + 1, x, y),
+                    onDragStop: (x, y) => handleMultiDragStop(i + 1, x, y)
+                });
+                
+                element.addEventListener('mousedown', (e) => handleMultiElementMouseDown(i + 1, e));
+                
+                multiElements.push({
+                    id: i + 1,
+                    element: element,
+                    instance: instance,
+                    x: x,
+                    y: y
+                });
+            }
+            
+            // 添加容器点击事件处理
+            const container4 = document.getElementById('demo4');
+            container4.addEventListener('mousedown', handleContainerClick);
+            
+            updateInfo4();
+        }
+
+        function handleMultiElementMouseDown(elementId, e) {
+            e.stopPropagation();
+            
+            if (e.ctrlKey) {
+                // Ctrl+点击：切换选择状态
+                if (selectedElements.has(elementId)) {
+                    unselectElement(elementId);
+                } else {
+                    selectElement(elementId);
+                }
+            } else {
+                // 普通点击：如果元素未选中，则清除其他选择并选中此元素
+                if (!selectedElements.has(elementId)) {
+                    clearMultiSelection();
+                    selectElement(elementId);
+                }
+            }
+        }
+
+        function handleContainerClick(e) {
+            if (e.target.id === 'demo4') {
+                clearMultiSelection();
+            }
+        }
+
+        function selectElement(elementId) {
+            selectedElements.add(elementId);
+            const elementData = multiElements.find(el => el.id === elementId);
+            if (elementData) {
+                elementData.element.classList.add('selected');
+            }
+            updateInfo4();
+        }
+
+        function unselectElement(elementId) {
+            selectedElements.delete(elementId);
+            const elementData = multiElements.find(el => el.id === elementId);
+            if (elementData) {
+                elementData.element.classList.remove('selected');
+            }
+            updateInfo4();
+        }
+
+        function clearMultiSelection() {
+            selectedElements.forEach(elementId => {
+                unselectElement(elementId);
+            });
+            selectedElements.clear();
+            updateInfo4();
+        }
+
+        function selectAllElements() {
+            multiElements.forEach(elementData => {
+                selectElement(elementData.id);
+            });
+        }
+
+        function handleMultiDragStart(primaryElementId, e) {
+            if (!selectedElements.has(primaryElementId)) {
+                clearMultiSelection();
+                selectElement(primaryElementId);
+            }
+            
+            isDraggingMultiple = true;
+            calculateDragOffsets(primaryElementId);
+            
+            // 添加拖拽样式
+            selectedElements.forEach(elementId => {
+                const elementData = multiElements.find(el => el.id === elementId);
+                if (elementData) {
+                    elementData.element.classList.add('dragging');
+                }
+            });
+            
+            return true;
+        }
+
+        function handleMultiDrag(primaryElementId, x, y) {
+            if (!isDraggingMultiple) return;
+            
+            // 更新主元素位置
+            const primaryData = multiElements.find(el => el.id === primaryElementId);
+            if (primaryData) {
+                primaryData.x = x;
+                primaryData.y = y;
+            }
+            
+            // 移动其他选中的元素
+            selectedElements.forEach(elementId => {
+                if (elementId !== primaryElementId) {
+                    const offset = dragOffsets.get(elementId);
+                    const elementData = multiElements.find(el => el.id === elementId);
+                    if (offset && elementData) {
+                        const newX = x + offset.x;
+                        const newY = y + offset.y;
+                        
+                        // 确保不超出容器边界
+                        const container = document.getElementById('demo4');
+                        const containerRect = container.getBoundingClientRect();
+                        const maxX = containerRect.width - 120;
+                        const maxY = containerRect.height - 80;
+                        
+                        const clampedX = Math.max(0, Math.min(maxX, newX));
+                        const clampedY = Math.max(0, Math.min(maxY, newY));
+                        
+                        elementData.instance.setPosition(clampedX, clampedY);
+                        elementData.x = clampedX;
+                        elementData.y = clampedY;
+                    }
+                }
+            });
+            
+            return true;
+        }
+
+        function handleMultiDragStop(elementId, x, y) {
+            isDraggingMultiple = false;
+            
+            // 移除拖拽样式
+            selectedElements.forEach(elementId => {
+                const elementData = multiElements.find(el => el.id === elementId);
+                if (elementData) {
+                    elementData.element.classList.remove('dragging');
+                }
+            });
+            
+            updateInfo4();
+        }
+
+        function calculateDragOffsets(primaryElementId) {
+            dragOffsets.clear();
+            const primaryData = multiElements.find(el => el.id === primaryElementId);
+            if (!primaryData) return;
+            
+            selectedElements.forEach(elementId => {
+                if (elementId !== primaryElementId) {
+                    const elementData = multiElements.find(el => el.id === elementId);
+                    if (elementData) {
+                        dragOffsets.set(elementId, {
+                            x: elementData.x - primaryData.x,
+                            y: elementData.y - primaryData.y
+                        });
+                    }
+                }
+            });
+        }
+
+        function updateInfo4() {
+            const selectedCount = selectedElements.size;
+            const totalCount = multiElements.length;
+            document.getElementById('info4').textContent = 
+                `总计: ${totalCount} 个元素 | 已选择: ${selectedCount} 个元素` +
+                (selectedCount > 1 ? ' | 拖拽任意选中元素可批量移动' : '');
+        }
+
+        function clearMultiDemo() {
+            multiElements.forEach(elementData => {
+                elementData.instance.destroy();
+                elementData.element.remove();
+            });
+            multiElements = [];
+            selectedElements.clear();
+            
+            // 移除容器事件监听
+            const container4 = document.getElementById('demo4');
+            container4.removeEventListener('mousedown', handleContainerClick);
+            
+            updateInfo4();
+        }
+    </script>
+</body>
+</html>

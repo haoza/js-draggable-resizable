@@ -1,0 +1,349 @@
+/**
+ * DraggableResizable 默认样式
+ * 纯CSS样式，不依赖任何框架
+ */
+
+/* 基础容器样式 */
+.vdr {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+/* 可拖拽状态 */
+.vdr.draggable {
+  cursor: move;
+}
+
+/* 可调整大小状态 */
+.vdr.resizable {
+  /* 无特殊样式，由句柄控制 */
+}
+
+/* 激活状态 */
+.vdr.active {
+  border-color: #3b82f6;
+  z-index: 1000;
+}
+
+/* 拖拽中状态 */
+.vdr.dragging {
+  opacity: 0.8;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 调整大小中状态 */
+.vdr.resizing {
+  opacity: 0.8;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 调整大小句柄基础样式 */
+.handle {
+  position: absolute;
+  background: #3b82f6;
+  border: 1px solid #1d4ed8;
+  z-index: 1001;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* 激活时显示句柄 */
+.vdr.active .handle {
+  opacity: 1;
+}
+
+/* 句柄悬停效果 */
+.handle:hover {
+  background: #1d4ed8;
+  transform: scale(1.1);
+}
+
+/* 顶部左侧句柄 */
+.handle-tl {
+  top: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  cursor: nw-resize;
+}
+
+/* 顶部中间句柄 */
+.handle-tm {
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  cursor: n-resize;
+}
+
+/* 顶部右侧句柄 */
+.handle-tr {
+  top: -4px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  cursor: ne-resize;
+}
+
+/* 右侧中间句柄 */
+.handle-mr {
+  top: 50%;
+  right: -4px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  cursor: e-resize;
+}
+
+/* 底部右侧句柄 */
+.handle-br {
+  bottom: -4px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  cursor: se-resize;
+}
+
+/* 底部中间句柄 */
+.handle-bm {
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  cursor: s-resize;
+}
+
+/* 底部左侧句柄 */
+.handle-bl {
+  bottom: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  cursor: sw-resize;
+}
+
+/* 左侧中间句柄 */
+.handle-ml {
+  top: 50%;
+  left: -4px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  cursor: w-resize;
+}
+
+/* 自定义主题变量 */
+:root {
+  --vdr-border-color: #d1d5db;
+  --vdr-border-color-active: #3b82f6;
+  --vdr-handle-color: #3b82f6;
+  --vdr-handle-color-hover: #1d4ed8;
+  --vdr-handle-border-color: #1d4ed8;
+  --vdr-background-color: #ffffff;
+  --vdr-opacity-dragging: 0.8;
+  --vdr-z-index: 1000;
+  --vdr-handle-z-index: 1001;
+}
+
+/* 使用CSS变量的样式（可选） */
+.vdr.themed {
+  border-color: var(--vdr-border-color);
+  background: var(--vdr-background-color);
+}
+
+.vdr.themed.active {
+  border-color: var(--vdr-border-color-active);
+  z-index: var(--vdr-z-index);
+}
+
+.vdr.themed.dragging,
+.vdr.themed.resizing {
+  opacity: var(--vdr-opacity-dragging);
+}
+
+.vdr.themed .handle {
+  background: var(--vdr-handle-color);
+  border-color: var(--vdr-handle-border-color);
+  z-index: var(--vdr-handle-z-index);
+}
+
+.vdr.themed .handle:hover {
+  background: var(--vdr-handle-color-hover);
+}
+
+/* 深色主题 */
+.vdr.dark-theme {
+  --vdr-border-color: #4b5563;
+  --vdr-border-color-active: #60a5fa;
+  --vdr-handle-color: #60a5fa;
+  --vdr-handle-color-hover: #3b82f6;
+  --vdr-handle-border-color: #3b82f6;
+  --vdr-background-color: #1f2937;
+}
+
+/* 最小化主题 */
+.vdr.minimal-theme {
+  border: 1px dashed #9ca3af;
+  background: transparent;
+}
+
+.vdr.minimal-theme.active {
+  border-color: #6b7280;
+}
+
+.vdr.minimal-theme .handle {
+  background: #6b7280;
+  border: none;
+  border-radius: 50%;
+  width: 6px;
+  height: 6px;
+}
+
+.vdr.minimal-theme .handle:hover {
+  background: #374151;
+}
+
+/* 重新定位最小化主题的句柄 */
+.vdr.minimal-theme .handle-tl { top: -3px; left: -3px; }
+.vdr.minimal-theme .handle-tm { top: -3px; }
+.vdr.minimal-theme .handle-tr { top: -3px; right: -3px; }
+.vdr.minimal-theme .handle-mr { right: -3px; }
+.vdr.minimal-theme .handle-br { bottom: -3px; right: -3px; }
+.vdr.minimal-theme .handle-bm { bottom: -3px; }
+.vdr.minimal-theme .handle-bl { bottom: -3px; left: -3px; }
+.vdr.minimal-theme .handle-ml { left: -3px; }
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .handle {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .handle-tl { top: -6px; left: -6px; }
+  .handle-tm { top: -6px; }
+  .handle-tr { top: -6px; right: -6px; }
+  .handle-mr { right: -6px; }
+  .handle-br { bottom: -6px; right: -6px; }
+  .handle-bm { bottom: -6px; }
+  .handle-bl { bottom: -6px; left: -6px; }
+  .handle-ml { left: -6px; }
+}
+
+/* 禁用状态 */
+.vdr.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.vdr.disabled .handle {
+  display: none;
+}
+
+/* 网格对齐辅助线（可选功能） */
+.vdr-grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  background-image: 
+    repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 20px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 20px);
+  background-size: 20px 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.vdr-grid-overlay.visible {
+  opacity: 1;
+}
+
+/* 选择框样式（多选功能） */
+.vdr-selection-box {
+  position: absolute;
+  border: 1px dashed #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  z-index: 1002;
+  pointer-events: none;
+}
+
+/* 父容器限制边界提示 */
+.vdr-parent-container {
+  position: relative;
+  border: 2px dashed #e5e7eb;
+  background: #f9fafb;
+  min-height: 200px;
+}
+
+.vdr-parent-container::before {
+  content: "拖拽区域";
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: #9ca3af;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* 动画效果 */
+.vdr {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vdr.active {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.handle {
+  transition: all 0.2s ease;
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .vdr {
+    border-width: 2px;
+  }
+  
+  .vdr.active {
+    border-color: #000000;
+  }
+  
+  .handle {
+    background: #000000;
+    border-color: #000000;
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  .vdr,
+  .handle,
+  .vdr-grid-overlay {
+    transition: none;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .handle {
+    display: none;
+  }
+  
+  .vdr {
+    border: 1px solid #000000;
+    box-shadow: none;
+  }
+}
